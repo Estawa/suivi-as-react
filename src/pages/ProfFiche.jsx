@@ -3,20 +3,32 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getStudent, saveStudent, deleteStudent, newStudentRecord } from "../lib/students";
 import { applyProfUpdates } from "../lib/dossier";
 import { uploadPhoto } from "../cloudinary";
+import { getMontantAdhesion } from "../lib/settings";
 import { ACTIVITES_AS, NIVEAUX_JEU, LIENS_PARENTE } from "../config";
 import Header from "../components/Header";
 
 export default function ProfFiche({ isNew = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [record, setRecord] = useState(isNew ? newStudentRecord() : null);
-  const [form, setForm] = useState(isNew ? newStudentRecord() : null);
+  const [record, setRecord] = useState(null);
+  const [form, setForm] = useState(null);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  // Le montant dû individuel est verrouillé par défaut, pour éviter qu'il
+  // soit changé par erreur en remplissant le reste de la fiche. Sur une
+  // nouvelle fiche, il n'y a rien à protéger : déverrouillé d'emblée.
+  const [montantDeverrouille, setMontantDeverrouille] = useState(isNew);
 
   useEffect(() => {
-    if (!isNew) {
+    if (isNew) {
+      getMontantAdhesion().then((montant) => {
+        // Une seule fiche générée (un seul id), partagée par record et form.
+        const nouvelle = newStudentRecord("", "", "", montant);
+        setRecord(nouvelle);
+        setForm(nouvelle);
+      });
+    } else {
       getStudent(id).then((r) => {
         setRecord(r);
         setForm(r);
@@ -74,13 +86,25 @@ export default function ProfFiche({ isNew = false }) {
     }
   }
 
+  function demanderDeverrouillageMontant() {
+    const confirmation = window.prompt(
+      `Tu es sur le point de modifier volontairement la cotisation réelle de ${record.prenom} ${record.nom} ` +
+      `(cas particulier : difficulté financière, tarif adapté, etc.). Ce montant individuel remplace le ` +
+      `montant par défaut pour cette fiche uniquement.\n\n` +
+      `Tape OUI en majuscules pour déverrouiller le champ.`
+    );
+    if (confirmation === "OUI") {
+      setMontantDeverrouille(true);
+    }
+  }
+
   async function handleDelete() {
     if (!window.confirm(`Supprimer définitivement la fiche de ${record.prenom} ${record.nom} ?`)) return;
     await deleteStudent(record.id);
     navigate("/prof/dashboard");
   }
 
-  const reste = (form.montant_du || 0) - (form.montant_verse || 0);
+  const reste = (form.montant_reel || 0) - (form.montant_verse || 0);
 
   return (
     <div>
@@ -170,7 +194,30 @@ export default function ProfFiche({ isNew = false }) {
                 </div>
               </Field>
               <Field label="Montant de l'AS dû (€)">
-                <input type="number" min="0" step="0.01" className="input" value={form.montant_du} onChange={(e) => set("montant_du", e.target.value)} />
+                <input type="text" className="input bg-gray-50" value={`${form.montant_du} €`} disabled />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Fixé en Réglages pour toute l'année, non modifiable ici.
+                </p>
+              </Field>
+              <Field label="Cotisation réelle (€)">
+                {montantDeverrouille ? (
+                  <input
+                    type="number" min="0" step="0.01" className="input"
+                    value={form.montant_reel}
+                    onChange={(e) => set("montant_reel", e.target.value)}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input type="text" className="input bg-gray-50" value={`${form.montant_reel} €`} disabled />
+                    <button
+                      type="button"
+                      onClick={demanderDeverrouillageMontant}
+                      className="shrink-0 rounded border px-2 py-2 text-xs text-indigo-600"
+                    >
+                      Modifier
+                    </button>
+                  </div>
+                )}
               </Field>
               <Field label="Montant perçu (€)">
                 <input type="number" min="0" step="0.01" className="input" value={form.montant_verse} onChange={(e) => set("montant_verse", e.target.value)} />
@@ -178,7 +225,9 @@ export default function ProfFiche({ isNew = false }) {
             </Grid>
             <p className="mt-1 text-xs text-gray-500">
               Le montant perçu est le total cumulé : en cas de nouveau versement, remplace la valeur par
-              la somme déjà perçue + le nouveau versement.
+              la somme déjà perçue + le nouveau versement. C'est la cotisation réelle (pas le montant dû
+              par défaut) qui détermine si le dossier est complet : si elle a été adaptée au cas de
+              l'élève, le dossier sera considéré complet dès qu'elle est atteinte, fiche rendue.
             </p>
             <div className="mt-3">
               <Field label="Mode de paiement">

@@ -68,6 +68,7 @@ export default function ProfDashboard() {
         links={[
           { to: "/prof/eleve/new", label: "+ Nouvel élève" },
           { to: "/prof/archives", label: "Archives" },
+          { to: "/prof/reglages", label: "Réglages" },
           { to: "/inscription/partage", label: "Partager l'inscription" },
         ]}
       />
@@ -132,7 +133,7 @@ export default function ProfDashboard() {
                     <Badge ok={s.dossier_complet === "Oui"}>{s.dossier_complet}</Badge>
                   </td>
                   <td className="px-3 py-2">
-                    {(s.montant_verse || 0).toFixed(2)} € / {(s.montant_du || 0).toFixed(2)} €
+                    {(s.montant_verse || 0).toFixed(2)} € / {(s.montant_reel ?? s.montant_du ?? 0).toFixed(2)} €
                   </td>
                   <td className="px-3 py-2">{MODES_PAIEMENT[s.mode_paiement] || "—"}</td>
                 </tr>

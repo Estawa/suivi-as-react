@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listStudents, findByIdentity, newStudentRecord, saveStudent } from "../lib/students";
+import { getMontantAdhesion } from "../lib/settings";
 import Header from "../components/Header";
 
 export default function EleveLookup() {
@@ -23,7 +24,8 @@ export default function EleveLookup() {
       const students = await listStudents();
       let record = findByIdentity(students, nom, prenom, classe);
       if (!record) {
-        record = newStudentRecord(nom.trim(), prenom.trim(), classe.trim());
+        const montant = await getMontantAdhesion();
+        record = newStudentRecord(nom.trim(), prenom.trim(), classe.trim(), montant);
         await saveStudent(record);
       }
       navigate(`/eleve/fiche/${record.id}`);
