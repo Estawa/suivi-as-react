@@ -10,6 +10,7 @@ export default function EleveFiche() {
   const [record, setRecord] = useState(null);
   const [form, setForm] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,6 +40,7 @@ export default function EleveFiche() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setSaving(true);
     const updates = {};
     for (const f of ELEVE_EDITABLE_FIELDS) updates[f] = form[f];
     const updated = { ...record, ...updates, derniere_maj: new Date().toISOString() };
@@ -46,9 +48,16 @@ export default function EleveFiche() {
       await saveStudent(updated);
       setRecord(updated);
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      // Le message de confirmation est en haut de la page : sans ce scroll,
+      // quelqu'un qui vient de cliquer "Enregistrer" tout en bas d'un long
+      // formulaire ne le voit jamais et croit que rien ne s'est passé.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => setSaved(false), 4000);
     } catch {
       setError("Erreur lors de l'enregistrement, réessaie.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -184,9 +193,18 @@ export default function EleveFiche() {
             </Grid>
           </Section>
 
-          <button type="submit" className="w-full rounded bg-gray-900 py-2.5 font-medium text-white">
-            Enregistrer
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded bg-gray-900 py-2.5 font-medium text-white disabled:opacity-60"
+          >
+            {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
+          {saved && (
+            <p className="mt-2 text-center text-sm font-medium text-green-700">
+              ✓ Fiche enregistrée
+            </p>
+          )}
         </form>
       </main>
     </div>
