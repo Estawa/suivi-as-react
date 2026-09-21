@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.input {
+  @apply w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none;
+}
+
+/* Page imprimable (partage d'inscription) : noir sur blanc uniquement,
+   conformément à une impression noir et blanc. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area, #print-area * {
+    visibility: visible;
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  #print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}
