@@ -8,6 +8,7 @@ import ProfLogin from "./pages/ProfLogin";
 import ProfDashboard from "./pages/ProfDashboard";
 import ProfFiche from "./pages/ProfFiche";
 import ProfArchives from "./pages/ProfArchives";
+import ProfSettings from "./pages/ProfSettings";
 import PartageInscription from "./pages/PartageInscription";
 
 function RequireProf({ children }) {
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/prof/eleve/new" element={<RequireProf><ProfFiche isNew /></RequireProf>} />
         <Route path="/prof/eleve/:id" element={<RequireProf><ProfFiche /></RequireProf>} />
         <Route path="/prof/archives" element={<RequireProf><ProfArchives /></RequireProf>} />
+        <Route path="/prof/reglages" element={<RequireProf><ProfSettings /></RequireProf>} />
         <Route path="/inscription/partage" element={<PartageInscription />} />
         <Route path="*" element={<Navigate to="/eleve" replace />} />
       </Routes>
