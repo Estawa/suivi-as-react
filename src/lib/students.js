@@ -1,19 +1,32 @@
 import {
-  collection, doc, getDoc, getDocs, setDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { MONTANT_AS_DEFAUT } from "../config";
+import { computeDossierComplet } from "./dossier";
 
 const COLLECTION = "students";
 
+/**
+ * Ajoute la "cotisation réelle" aux fiches créées avant l'introduction de ce
+ * champ, en la calant sur le montant dû par défaut déjà présent, sans rien
+ * écraser d'existant.
+ */
+function normalizeStudent(data) {
+  if (data && data.montant_reel === undefined) {
+    data.montant_reel = data.montant_du;
+  }
+  return data;
+}
+
 export async function listStudents() {
   const snap = await getDocs(collection(db, COLLECTION));
-  return snap.docs.map((d) => d.data());
+  return snap.docs.map((d) => normalizeStudent(d.data()));
 }
 
 export async function getStudent(id) {
   const snap = await getDoc(doc(db, COLLECTION, id));
-  return snap.exists() ? snap.data() : null;
+  return snap.exists() ? normalizeStudent(snap.data()) : null;
 }
 
 export async function saveStudent(record) {
@@ -22,6 +35,37 @@ export async function saveStudent(record) {
 
 export async function deleteStudent(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+/**
+ * Applique un nouveau montant à toutes les fiches dont la cotisation réelle
+ * est encore identique au montant dû par défaut (donc jamais ajustée au cas
+ * par cas). Les fiches déjà personnalisées (tarif réduit, etc.) ne sont pas
+ * touchées, ni le montant dû ni la cotisation réelle.
+ */
+export async function applyMontantATousLesEleves(montant) {
+  const students = await listStudents();
+  const batch = writeBatch(db);
+  let nbModifiees = 0;
+  for (const s of students) {
+    const personnalisee = s.montant_reel !== s.montant_du;
+    if (personnalisee) continue; // on ne touche pas aux cas particuliers
+
+    const complet = computeDossierComplet(s.fiche_rendue, montant, s.montant_verse);
+    const updated = {
+      ...s,
+      montant_du: montant,
+      montant_reel: montant,
+      dossier_complet: complet ? "Oui" : "Non",
+      horodatage_dossier_complet: complet
+        ? (s.dossier_complet === "Oui" ? s.horodatage_dossier_complet : new Date().toLocaleString("fr-FR"))
+        : "",
+    };
+    batch.set(doc(db, COLLECTION, s.id), updated);
+    nbModifiees += 1;
+  }
+  await batch.commit();
+  return { nbModifiees, nbIgnorees: students.length - nbModifiees };
 }
 
 export function normalize(text) {
@@ -39,7 +83,7 @@ export function findByIdentity(students, nom, prenom, classe) {
   );
 }
 
-export function newStudentRecord(nom = "", prenom = "", classe = "") {
+export function newStudentRecord(nom = "", prenom = "", classe = "", montantDu = MONTANT_AS_DEFAUT) {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID().replace(/-/g, ""),
@@ -53,7 +97,8 @@ export function newStudentRecord(nom = "", prenom = "", classe = "") {
     club_pratique: "Non",
     club_activite: "", club_lieu: "", club_categorie: "", club_niveau: "",
     fiche_rendue: "Non",
-    montant_du: MONTANT_AS_DEFAUT,
+    montant_du: montantDu,
+    montant_reel: montantDu,
     montant_verse: 0,
     mode_paiement: "",
     dossier_complet: "Non",
@@ -77,7 +122,7 @@ export const ELEVE_EDITABLE_FIELDS = [
 
 // Champs réservés au Prof, jamais montrés côté élève.
 export const PROF_ONLY_FIELDS = [
-  "fiche_rendue", "montant_du", "montant_verse", "mode_paiement",
+  "fiche_rendue", "montant_du", "montant_reel", "montant_verse", "mode_paiement",
   "dossier_complet", "horodatage_dossier_complet", "opus_valide", "observations",
 ];
 
