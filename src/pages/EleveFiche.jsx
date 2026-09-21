@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getStudent, saveStudent, eleveView, ELEVE_EDITABLE_FIELDS } from "../lib/students";
 import { uploadPhoto } from "../cloudinary";
 import { ACTIVITES_AS, NIVEAUX_JEU, LIENS_PARENTE } from "../config";
@@ -7,6 +7,7 @@ import Header from "../components/Header";
 
 export default function EleveFiche() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [record, setRecord] = useState(null);
   const [form, setForm] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -52,7 +53,10 @@ export default function EleveFiche() {
       // quelqu'un qui vient de cliquer "Enregistrer" tout en bas d'un long
       // formulaire ne le voit jamais et croit que rien ne s'est passé.
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setTimeout(() => setSaved(false), 4000);
+      // Laisse le temps de voir la confirmation, puis ramène automatiquement
+      // à l'accueil : sans ça, l'élève reste coincé sur sa propre fiche sans
+      // moyen évident d'en sortir.
+      setTimeout(() => navigate("/eleve"), 1800);
     } catch {
       setError("Erreur lors de l'enregistrement, réessaie.");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -202,7 +206,7 @@ export default function EleveFiche() {
           </button>
           {saved && (
             <p className="mt-2 text-center text-sm font-medium text-green-700">
-              ✓ Fiche enregistrée
+              ✓ Fiche enregistrée — retour à l'accueil…
             </p>
           )}
         </form>

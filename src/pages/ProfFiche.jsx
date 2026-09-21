@@ -13,6 +13,7 @@ export default function ProfFiche({ isNew = false }) {
   const [record, setRecord] = useState(null);
   const [form, setForm] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   // Le montant dû individuel est verrouillé par défaut, pour éviter qu'il
@@ -50,6 +51,7 @@ export default function ProfFiche({ isNew = false }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setSaving(true);
     const updated = applyProfUpdates(record, form);
     try {
       await saveStudent(updated);
@@ -59,10 +61,17 @@ export default function ProfFiche({ isNew = false }) {
         setRecord(updated);
         setForm(updated);
         setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        // Sans ce scroll, la confirmation (affichée en haut de la page) passe
+        // inaperçue pour quelqu'un qui vient de cliquer "Enregistrer" tout en
+        // bas d'une longue fiche.
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setTimeout(() => setSaved(false), 4000);
       }
     } catch {
       setError("Erreur lors de l'enregistrement, réessaie.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -263,9 +272,18 @@ export default function ProfFiche({ isNew = false }) {
             <textarea className="input" rows={3} value={form.observations} onChange={(e) => set("observations", e.target.value)} />
           </Section>
 
-          <button type="submit" className="w-full rounded bg-gray-900 py-2.5 font-medium text-white">
-            {isNew ? "Créer la fiche" : "Enregistrer"}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded bg-gray-900 py-2.5 font-medium text-white disabled:opacity-60"
+          >
+            {saving ? "Enregistrement…" : (isNew ? "Créer la fiche" : "Enregistrer")}
           </button>
+          {saved && (
+            <p className="mt-2 text-center text-sm font-medium text-green-700">
+              ✓ Fiche enregistrée
+            </p>
+          )}
         </form>
 
         {!isNew && (

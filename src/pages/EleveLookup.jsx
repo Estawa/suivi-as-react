@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { listStudents, findByIdentity, newStudentRecord, saveStudent } from "../lib/students";
 import { getMontantAdhesion } from "../lib/settings";
 import Header from "../components/Header";
+import SharePanel from "../components/SharePanel";
 
 export default function EleveLookup() {
   const [nom, setNom] = useState("");
@@ -83,6 +84,10 @@ export default function EleveLookup() {
               {loading ? "Chargement…" : "Commencer"}
             </button>
           </form>
+        </div>
+
+        <div className="mt-4">
+          <SharePanel />
         </div>
       </main>
     </div>
