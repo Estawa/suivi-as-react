@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDocs, setDoc, writeBatch,
+  collection, doc, getDoc, getDocs, setDoc, writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -11,6 +11,11 @@ export function computeSchoolYearLabel(d = new Date()) {
   return d.getMonth() + 1 >= 8
     ? `${d.getFullYear()}-${d.getFullYear() + 1}`
     : `${d.getFullYear() - 1}-${d.getFullYear()}`;
+}
+
+export async function getArchive(id) {
+  const snap = await getDoc(doc(db, ARCHIVES_COLLECTION, id));
+  return snap.exists() ? snap.data() : null;
 }
 
 export async function listArchives() {
@@ -32,11 +37,14 @@ export async function archiveCurrentYear(students) {
   };
   await setDoc(doc(db, ARCHIVES_COLLECTION, archive.id), archive);
 
-  // Vide la collection des élèves en cours.
-  const batch = writeBatch(db);
-  for (const s of students) {
-    batch.delete(doc(db, STUDENTS_COLLECTION, s.id));
+  // Vide la collection des élèves en cours, seulement une fois l'archive
+  // enregistrée. Par paquets de 400 (Firestore limite un lot à 500 écritures).
+  for (let i = 0; i < students.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const s of students.slice(i, i + 400)) {
+      batch.delete(doc(db, STUDENTS_COLLECTION, s.id));
+    }
+    await batch.commit();
   }
-  await batch.commit();
   return archive;
 }
