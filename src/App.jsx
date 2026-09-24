@@ -12,6 +12,7 @@ import ProfArchiveView from "./pages/ProfArchiveView";
 import ProfArchiveFiche from "./pages/ProfArchiveFiche";
 import ProfSettings from "./pages/ProfSettings";
 import PartageInscription from "./pages/PartageInscription";
+import VersionFooter from "./components/VersionFooter";
 
 function RequireProf({ children }) {
   if (!isAuthenticated()) {
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/inscription/partage" element={<PartageInscription />} />
         <Route path="*" element={<Navigate to="/eleve" replace />} />
       </Routes>
+      <VersionFooter />
     </BrowserRouter>
   );
 }
