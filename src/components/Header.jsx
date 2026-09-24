@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../lib/pin";
 
+/* global __APP_VERSION__ */
+
 export default function Header({ title, subtitle, prof = false, links = [] }) {
   const navigate = useNavigate();
 
@@ -13,7 +15,12 @@ export default function Header({ title, subtitle, prof = false, links = [] }) {
     <header className="border-b bg-white">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+          <h1 className="text-lg font-bold text-gray-900">
+            {title}
+            <span className="ml-2 align-middle rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+              v{__APP_VERSION__}
+            </span>
+          </h1>
           {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
         </div>
         <nav className="flex flex-wrap gap-3 text-sm">
