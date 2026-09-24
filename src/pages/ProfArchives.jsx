@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { listArchives } from "../lib/archives";
 import { exportStudentsToExcel } from "../lib/excelExport";
 import Header from "../components/Header";
@@ -28,12 +29,20 @@ export default function ProfArchives() {
                   {a.nb_eleves} élève(s) — archivé le {(a.archive_le || "").slice(0, 10)}
                 </div>
               </div>
-              <button
-                onClick={() => exportStudentsToExcel(a.students, `Fiche_suivi_eleves_AS_${a.annee}.xlsx`)}
-                className="rounded border px-3 py-1.5 text-sm text-indigo-600"
-              >
-                Exporter Excel
-              </button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Link
+                  to={`/prof/archives/${a.id}`}
+                  className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white"
+                >
+                  Consulter
+                </Link>
+                <button
+                  onClick={() => exportStudentsToExcel(a.students, `Fiche_suivi_eleves_AS_${a.annee}.xlsx`)}
+                  className="rounded border px-3 py-1.5 text-sm text-indigo-600"
+                >
+                  Exporter Excel
+                </button>
+              </div>
             </div>
           ))}
         </div>
